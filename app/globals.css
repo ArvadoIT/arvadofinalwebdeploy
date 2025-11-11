@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  --font-inter: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-orbitron: "Orbitron", system-ui, sans-serif;
+}
+
+body {
+  @apply bg-slate-950 text-white antialiased selection:bg-sky-500/70 selection:text-white;
+}
+
+.site-reveal {
+  @apply relative z-10;
+}
+
+.glass-panel {
+  @apply border border-white/10 bg-white/5 backdrop-blur-xl;
+}
+
+.tag {
+  @apply inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/80 uppercase tracking-widest;
+}
+
+.section-heading {
+  @apply font-orbitron text-3xl md:text-4xl uppercase tracking-[0.4em] text-white text-center;
+}
+
+.section-subtitle {
+  @apply mt-4 text-base md:text-lg text-white/70 max-w-2xl mx-auto text-center;
+}
+
+/* Scene-based chapters */
+.snap-y {
+  scroll-snap-type: y mandatory;
+}
+
+.snap-start {
+  scroll-snap-align: start;
+}
+
+@layer utilities {
+  .gradient-border {
+    border-image: linear-gradient(135deg, rgba(14, 165, 233, 0.35), rgba(236, 72, 153, 0.25)) 1;
+  }
+}
+
