@@ -1,17 +1,11 @@
 import "./globals.css";
 import type { Metadata } from "next";
-import { Inter, Orbitron } from "next/font/google";
+import { Inter } from "next/font/google";
 import type { ReactNode } from "react";
 
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
-});
-
-const orbitron = Orbitron({
-  subsets: ["latin"],
-  variable: "--font-orbitron",
-  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -22,8 +16,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${orbitron.variable}`}>
-      <body className="bg-slate-950 text-white antialiased">{children}</body>
+    <html lang="en" className={`${inter.variable}`}>
+      <body className="bg-slate-950 text-white antialiased w-full overflow-x-hidden">
+        <main className="relative z-10 w-full">{children}</main>
+      </body>
     </html>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { Reveal } from "../lib/scroll-motion";
+import { Reveal, SectionFade } from "../lib/scroll-motion";
 
 const clients = [
   { name: "DentaLux Clinics", tag: "Healthcare" },
@@ -27,6 +27,7 @@ const testimonials = [
 export default function TrustSignals() {
   return (
     <section className="relative py-20">
+      <SectionFade>
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-6 lg:flex-row lg:items-center lg:gap-16 lg:px-8">
         <div className="flex-1">
           <Reveal>
@@ -37,7 +38,7 @@ export default function TrustSignals() {
               {clients.map((client) => (
                 <li
                   key={client.name}
-                  className="rounded-2xl border border-white/10 bg-white/5 px-4 py-5 backdrop-blur-lg transition hover:border-white/20 hover:text-white"
+                  className="rounded-2xl border border-white/5 bg-white/5 px-4 py-5 backdrop-blur-lg transition hover:border-white/15 hover:text-white"
                 >
                   <p className="font-medium text-white">{client.name}</p>
                   <p className="mt-1 text-xs uppercase tracking-[0.3em] text-white/40">{client.tag}</p>
@@ -60,6 +61,7 @@ export default function TrustSignals() {
           ))}
         </div>
       </div>
+      </SectionFade>
     </section>
   );
 }

@@ -40,6 +40,13 @@ function scrollToHash(lenis: LenisInstance, hash: string, behaviour: "instant" |
   }
 }
 
+// Global Lenis instance for scroll control
+let lenisInstance: LenisInstance | null = null;
+
+export function getLenisInstance(): LenisInstance | null {
+  return lenisInstance;
+}
+
 export function useLenis(enabled = true) {
   useEffect(() => {
     if (!enabled) return;
@@ -48,6 +55,8 @@ export function useLenis(enabled = true) {
       lerp: 0.12,
       smoothWheel: true,
     });
+
+    lenisInstance = lenis;
 
     let frame: number;
     const raf = (time: number) => {
@@ -88,6 +97,7 @@ export function useLenis(enabled = true) {
       document.removeEventListener("click", handleAnchorClick);
       window.removeEventListener("hashchange", handleHashChange);
       lenis.destroy();
+      lenisInstance = null;
     };
   }, [enabled]);
 }

@@ -117,3 +117,24 @@ export function CountUp({
   return <motion.span className={className}>{rounded}</motion.span>;
 }
 
+export function SectionFade({
+  className = "",
+  children,
+}: {
+  className?: string;
+  children: ReactNode;
+}) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start 85%", "end 15%"],
+  });
+  // Crossfade curve: fade in near entry, stay visible, fade out near exit
+  const opacity = useTransform(scrollYProgress, [0, 0.1, 0.9, 1], [0, 1, 1, 0]);
+  return (
+    <motion.div ref={ref} style={{ opacity }} className={className}>
+      {children}
+    </motion.div>
+  );
+}
+
