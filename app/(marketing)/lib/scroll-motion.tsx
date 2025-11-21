@@ -76,10 +76,14 @@ export function ParallaxY({
   children: ReactNode;
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
+  const { scrollYProgress } = useScroll({ 
+    target: ref, 
+    offset: ["start end", "end start"],
+    layoutEffect: false, // Performance optimization
+  });
   const y = useTransform(scrollYProgress, [0, 1], [from, to]);
   return (
-    <motion.div ref={ref} style={{ y, position: "relative" }} className={className}>
+    <motion.div ref={ref} style={{ y, position: "relative", willChange: "transform" }} className={className}>
       {children}
     </motion.div>
   );
@@ -151,11 +155,12 @@ export function SectionFade({
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ["start 85%", "end 15%"],
+    layoutEffect: false, // Performance optimization
   });
   // Crossfade curve: fade in near entry, stay visible, fade out near exit
   const opacity = useTransform(scrollYProgress, [0, 0.1, 0.9, 1], [0, 1, 1, 0]);
   return (
-    <motion.div ref={ref} style={{ opacity }} className={className}>
+    <motion.div ref={ref} style={{ opacity, willChange: "opacity" }} className={className}>
       {children}
     </motion.div>
   );

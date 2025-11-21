@@ -23,6 +23,11 @@ export default function CTA() {
   });
 
   const backgroundOpacity = useTransform(smoothProgress, [0, 0.3, 0.7, 1], [0, 0.2, 0.2, 0]);
+  
+  // Scroll-Zoom Narrative Reveal: Scale and opacity transforms
+  // Smooth, slow zoom effect as content enters viewport
+  const contentScale = useTransform(smoothProgress, [0, 0.6], [0.85, 1.0]);
+  const contentOpacity = useTransform(smoothProgress, [0, 0.5], [0, 1]);
 
   useEffect(() => {
     if (contentInView && !hasAppeared) {
@@ -52,9 +57,10 @@ export default function CTA() {
         <div className="mx-auto w-full max-w-4xl px-6 text-center lg:px-8 relative z-10">
           <motion.div
             ref={contentRef}
-            initial={{ opacity: 0, y: 40, filter: "blur(12px)" }}
-            animate={hasAppeared ? { opacity: 1, y: 0, filter: "blur(0px)" } : { opacity: 0, y: 40, filter: "blur(12px)" }}
-            transition={{ duration: 0.8, ease: [0.19, 1, 0.22, 1] }}
+            style={{
+              scale: contentScale,
+              opacity: contentOpacity,
+            }}
             className="glass-panel relative overflow-hidden rounded-3xl px-8 py-16 md:px-12 mx-auto"
           >
             {/* Glow orb background */}

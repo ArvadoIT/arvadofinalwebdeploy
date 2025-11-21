@@ -1,7 +1,71 @@
 "use client";
 
-import { motion, useScroll, useTransform, useSpring, AnimatePresence } from "framer-motion";
+import { motion, useScroll, useTransform, useSpring, AnimatePresence, useMotionValue } from "framer-motion";
 import { useRef, useState, useEffect } from "react";
+import type { ReactNode } from "react";
+
+// Magnetic button component
+function MagneticButton({ 
+	href, 
+	children, 
+	className, 
+	variants 
+}: { 
+	href: string; 
+	children: ReactNode; 
+	className?: string;
+	variants?: any;
+}) {
+	const ref = useRef<HTMLAnchorElement>(null);
+	const x = useMotionValue(0);
+	const y = useMotionValue(0);
+	
+	const mouseXSpring = useSpring(x, { stiffness: 500, damping: 100 });
+	const mouseYSpring = useSpring(y, { stiffness: 500, damping: 100 });
+	
+	const translateX = useTransform(mouseXSpring, [-0.5, 0.5], [-12, 12]);
+	const translateY = useTransform(mouseYSpring, [-0.5, 0.5], [-12, 12]);
+
+	const handleMouseMove = (e: React.MouseEvent<HTMLAnchorElement>) => {
+		if (!ref.current) return;
+		
+		const rect = ref.current.getBoundingClientRect();
+		const width = rect.width;
+		const height = rect.height;
+		const mouseX = e.clientX - rect.left;
+		const mouseY = e.clientY - rect.top;
+		const xPct = mouseX / width - 0.5;
+		const yPct = mouseY / height - 0.5;
+		
+		x.set(xPct);
+		y.set(yPct);
+	};
+
+	const handleMouseLeave = () => {
+		x.set(0);
+		y.set(0);
+	};
+
+	return (
+		<motion.a
+			ref={ref}
+			href={href}
+			onMouseMove={handleMouseMove}
+			onMouseLeave={handleMouseLeave}
+			style={{ x: translateX, y: translateY }}
+			variants={variants}
+			whileHover={{
+				scale: 1.05,
+				y: -3,
+				transition: { duration: 0.2 },
+			}}
+			whileTap={{ scale: 0.98 }}
+			className={className}
+		>
+			{children}
+		</motion.a>
+	);
+}
 
 export default function CinematicHero() {
 	const sectionRef = useRef<HTMLElement>(null);
@@ -11,31 +75,27 @@ export default function CinematicHero() {
 	const { scrollYProgress } = useScroll({
 		target: sectionRef,
 		offset: ["start start", "end start"],
+		layoutEffect: false, // Performance optimization
 	});
 
-	// Smooth spring for scroll progress
-	const smoothProgress = useSpring(scrollYProgress, {
-		mass: 0.5,
-		stiffness: 100,
-		damping: 30,
-	});
-
-	// Parallax layers at different speeds
-	const backgroundLayer1 = useTransform(smoothProgress, [0, 1], [0, 100]);
-	const backgroundLayer2 = useTransform(smoothProgress, [0, 1], [0, 60]);
-	const backgroundLayer3 = useTransform(smoothProgress, [0, 1], [0, 40]);
-
-	// Content parallax
-	const contentY = useTransform(smoothProgress, [0, 1], [0, 80]);
-	const contentOpacity = useTransform(smoothProgress, [0, 0.7], [1, 0]);
-	const contentScale = useTransform(smoothProgress, [0, 0.5], [1, 0.95]);
-
-	// Background glow intensity
-	const glowScale = useTransform(smoothProgress, [0, 1], [1, 1.3]);
-	const glowOpacity = useTransform(smoothProgress, [0, 0.8], [0.8, 0.2]);
-
-	// Rotating gradient position
-	const gradientRotation = useTransform(smoothProgress, [0, 1], [0, 360]);
+	// Simplified parallax - reduced transforms for performance
+	const contentY = useTransform(scrollYProgress, [0, 1], [0, 40]);
+	const contentOpacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
+	
+	// Optimize will-change only during scroll
+	const [isScrolling, setIsScrolling] = useState(false);
+	useEffect(() => {
+		let timeoutId: NodeJS.Timeout;
+		const unsubscribe = scrollYProgress.on('change', () => {
+			setIsScrolling(true);
+			clearTimeout(timeoutId);
+			timeoutId = setTimeout(() => setIsScrolling(false), 150);
+		});
+		return () => {
+			unsubscribe();
+			clearTimeout(timeoutId);
+		};
+	}, [scrollYProgress]);
 
 	useEffect(() => {
 		// Trigger initial animation sequence
@@ -51,82 +111,55 @@ export default function CinematicHero() {
 			ref={sectionRef} 
 			className="relative min-h-screen flex items-center justify-center overflow-hidden pt-24 md:pt-32 pb-16 md:pb-24"
 		>
-			{/* Animated Background Layers */}
+			{/* Simplified Background - reduced layers for performance */}
 			<div className="absolute inset-0 -z-10">
 				{/* Base layer - deep gradient */}
-				<motion.div
+				<div
 					className="absolute inset-0"
 					style={{
 						background: "radial-gradient(ellipse 80% 50% at 50% 50%, rgba(2,6,23,0.98), rgba(2,6,23,1))",
-						y: backgroundLayer1,
 					}}
 				/>
 
-				{/* Middle layer - animated gradient orbs */}
+				{/* Simplified animated gradient orbs - reduced count with will-change optimization */}
 				<motion.div
-					className="absolute inset-0"
+					className="absolute top-[20%] left-[15%] w-[600px] h-[600px] rounded-full blur-3xl opacity-30"
 					style={{
-						y: backgroundLayer2,
-						rotate: gradientRotation,
+						background: "radial-gradient(circle, rgba(14,165,233,0.4), transparent 70%)",
+						willChange: "transform",
 					}}
-				>
-					<motion.div
-						className="absolute top-[20%] left-[15%] w-[600px] h-[600px] rounded-full blur-3xl opacity-40"
-						style={{
-							background: "radial-gradient(circle, rgba(14,165,233,0.4), transparent 70%)",
-							scale: glowScale,
-						}}
-						animate={{
-							x: [0, 50, 0],
-							y: [0, -30, 0],
-						}}
-						transition={{
-							duration: 20,
-							repeat: Infinity,
-							ease: "easeInOut",
-						}}
-					/>
-					<motion.div
-						className="absolute bottom-[25%] right-[20%] w-[500px] h-[500px] rounded-full blur-3xl opacity-30"
-						style={{
-							background: "radial-gradient(circle, rgba(139,92,246,0.4), transparent 70%)",
-							scale: glowScale,
-						}}
-						animate={{
-							x: [0, -40, 0],
-							y: [0, 40, 0],
-						}}
-						transition={{
-							duration: 18,
-							repeat: Infinity,
-							ease: "easeInOut",
-							delay: 2,
-						}}
-					/>
-					<motion.div
-						className="absolute top-[50%] left-[50%] w-[400px] h-[400px] rounded-full blur-3xl opacity-25 -translate-x-1/2 -translate-y-1/2"
-						style={{
-							background: "radial-gradient(circle, rgba(20,184,166,0.35), transparent 70%)",
-							scale: glowScale,
-						}}
-						animate={{
-							scale: [1, 1.2, 1],
-						}}
-						transition={{
-							duration: 15,
-							repeat: Infinity,
-							ease: "easeInOut",
-						}}
-					/>
-				</motion.div>
-
-				{/* Top layer - particle grid */}
+					animate={{
+						x: [0, 50, 0],
+						y: [0, -30, 0],
+					}}
+					transition={{
+						duration: 20,
+						repeat: Infinity,
+						ease: "easeInOut",
+					}}
+				/>
 				<motion.div
-					className="absolute inset-0 opacity-[0.03]"
-					style={{ y: backgroundLayer3 }}
-				>
+					className="absolute bottom-[25%] right-[20%] w-[500px] h-[500px] rounded-full blur-3xl opacity-20"
+					style={{
+						background: "radial-gradient(circle, rgba(139,92,246,0.4), transparent 70%)",
+						willChange: "transform",
+					}}
+					animate={{
+						x: [0, -40, 0],
+						y: [0, 40, 0],
+					}}
+					transition={{
+						duration: 18,
+						repeat: Infinity,
+						ease: "easeInOut",
+						delay: 2,
+					}}
+				/>
+
+				{/* Static grid pattern */}
+				<div className="absolute inset-0 opacity-[0.03]">
 					<div className="h-full w-full [background-image:linear-gradient(rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.1)_1px,transparent_1px)] [background-size:60px_60px]" />
-				</motion.div>
+				</div>
 
 				{/* Vignette */}
 				<div 
@@ -137,54 +170,44 @@ export default function CinematicHero() {
 				/>
 			</div>
 
-			{/* Floating Particle Elements */}
-			<AnimatePresence>
-				{loaded && (
-					<>
-						{Array.from({ length: 12 }).map((_, i) => {
-							const delay = i * 0.3;
-							const duration = 8 + (i % 3) * 2;
-							const size = 2 + (i % 3);
-							const startX = (i % 4) * 25;
-							const startY = (Math.floor(i / 4) % 3) * 33;
+			{/* Floating Particle Elements - Further reduced for performance */}
+			{loaded && (
+				<>
+					{Array.from({ length: 4 }).map((_, i) => {
+						const delay = i * 0.5;
+						const duration = 8 + (i % 2) * 2;
+						const size = 3;
+						const startX = (i % 2) * 50 + 25;
+						const startY = (Math.floor(i / 2) % 2) * 50 + 25;
 
-							return (
-								<motion.div
-									key={i}
-									className="absolute rounded-full bg-sky-400/20 blur-sm"
-									style={{
-										width: `${size}px`,
-										height: `${size}px`,
-										left: `${startX}%`,
-										top: `${startY}%`,
-									}}
-									initial={{ opacity: 0, scale: 0 }}
-									animate={{
-										opacity: [0, 0.6, 0],
-										scale: [0, 1.5, 0],
-										x: [
-											`${Math.random() * 100 - 50}px`,
-											`${Math.random() * 100 - 50}px`,
-											`${Math.random() * 100 - 50}px`,
-										],
-										y: [
-											`${Math.random() * 100 - 50}px`,
-											`${Math.random() * 100 - 50}px`,
-											`${Math.random() * 100 - 50}px`,
-										],
-									}}
-									transition={{
-										duration,
-										repeat: Infinity,
-										ease: "easeInOut",
-										delay,
-									}}
-								/>
-							);
-						})}
-					</>
-				)}
-			</AnimatePresence>
+						return (
+							<motion.div
+								key={i}
+								className="absolute rounded-full bg-sky-400/20 blur-[1px]"
+								style={{
+									left: `${startX}%`,
+									top: `${startY}%`,
+									width: `${size}px`,
+									height: `${size}px`,
+								}}
+								initial={{ opacity: 0, scale: 0 }}
+								animate={{
+									opacity: [0, 0.6, 0.4, 0],
+									scale: [0, 1, 0.8, 0],
+									x: `${(Math.random() - 0.5) * 100}px`,
+									y: `${(Math.random() - 0.5) * 100}px`,
+								}}
+								transition={{
+									duration,
+									repeat: Infinity,
+									ease: "easeInOut",
+									delay,
+								}}
+							/>
+						);
+					})}
+				</>
+			)}
 
 			{/* Main Content */}
 			<motion.div
@@ -193,7 +216,7 @@ export default function CinematicHero() {
 				style={{
 					y: contentY,
 					opacity: contentOpacity,
-					scale: contentScale,
+					willChange: isScrolling ? 'transform, opacity' : 'auto',
 				}}
 			>
 				<AnimatePresence mode="wait">
@@ -255,68 +278,48 @@ export default function CinematicHero() {
 								</motion.span>
 							</motion.div>
 
-							{/* Headline with character-by-character reveal */}
+							{/* Headline with word-by-word reveal - simplified for performance */}
 							<div className="w-full max-w-5xl mx-auto mb-6 md:mb-8">
 								<motion.h1
 									className="text-[clamp(1.875rem,5.5vw,4.5rem)] font-bold leading-[1.15] tracking-[-0.02em] text-white break-normal hyphens-none"
+									style={{
+										textShadow: "0 0 40px rgba(14, 165, 233, 0.15), 0 0 80px rgba(14, 165, 233, 0.08), 0 2px 4px rgba(0, 0, 0, 0.3)",
+									}}
 									variants={{
 										hidden: { opacity: 0 },
-										visible: { opacity: 1 },
+										visible: {
+											opacity: 1,
+											transition: {
+												staggerChildren: 0.05,
+												delayChildren: 0.2,
+											},
+										},
 									}}
 								>
-									{headline.split(" ").map((word, wordIndex, words) => {
-										const wordSpan = (
-											<span key={wordIndex} className="inline-block whitespace-nowrap">
-												{word.split("").map((char, charIndex) => {
-													// Clean any hidden characters (soft hyphens, zero-width spaces, etc.)
-													const cleanChar = char.replace(/[\u00AD\u200B-\u200D\uFEFF]/g, '');
-													return (
-														<motion.span
-															key={`${wordIndex}-${charIndex}`}
-															className="inline-block"
-															variants={{
-																hidden: {
-																	opacity: 0,
-																	y: 50,
-																	rotateX: -90,
-																	filter: "blur(10px)",
-																},
-																visible: {
-																	opacity: 1,
-																	y: 0,
-																	rotateX: 0,
-																	filter: "blur(0px)",
-																	transition: {
-																		type: "spring",
-																		stiffness: 150,
-																		damping: 12,
-																		delay: (wordIndex * 10 + charIndex) * 0.03,
-																	},
-																},
-															}}
-															style={{
-																display: "inline-block",
-																transformStyle: "preserve-3d",
-															}}
-														>
-															{cleanChar}
-														</motion.span>
-													);
-												})}
-											</span>
-										);
-										
-										// Add space between words
-										if (wordIndex < words.length - 1) {
-											return (
-												<>
-													{wordSpan}
-													<span key={`space-${wordIndex}`} className="inline-block whitespace-pre"> </span>
-												</>
-											);
-										}
-										return wordSpan;
-									})}
+									{headline.split(" ").map((word, wordIndex) => (
+										<motion.span
+											key={wordIndex}
+											className="inline-block whitespace-nowrap mr-2"
+											variants={{
+												hidden: {
+													opacity: 0,
+													y: 30,
+												},
+												visible: {
+													opacity: 1,
+													y: 0,
+													transition: {
+														type: "spring",
+														stiffness: 200,
+														damping: 20,
+													},
+												},
+											}}
+											style={{ willChange: loaded ? 'auto' : 'transform, opacity' }}
+										>
+											{word}
+										</motion.span>
+									))}
 								</motion.h1>
 							</div>
 
@@ -334,7 +337,7 @@ export default function CinematicHero() {
 										filter: "blur(0px)",
 										transition: {
 											duration: 0.8,
-											delay: headline.split("").length * 0.03 + 0.3,
+											delay: 0.3,
 											ease: [0.22, 1, 0.36, 1],
 										},
 									},
@@ -344,7 +347,7 @@ export default function CinematicHero() {
 								{subheadline}
 							</motion.p>
 
-							{/* CTA Buttons */}
+							{/* CTA Buttons with Magnetic Effect */}
 							<motion.div
 								variants={{
 									hidden: { opacity: 0 },
@@ -352,13 +355,13 @@ export default function CinematicHero() {
 										opacity: 1,
 										transition: {
 											staggerChildren: 0.1,
-											delayChildren: headline.split("").length * 0.03 + 0.6,
+											delayChildren: 0.6,
 										},
 									},
 								}}
 								className="flex flex-col items-center justify-center gap-4 sm:flex-row"
 							>
-								<motion.a
+								<MagneticButton
 									href="#contact"
 									variants={{
 										hidden: {
@@ -377,12 +380,6 @@ export default function CinematicHero() {
 											},
 										},
 									}}
-									whileHover={{
-										scale: 1.05,
-										y: -3,
-										transition: { duration: 0.2 },
-									}}
-									whileTap={{ scale: 0.98 }}
 									className="group relative overflow-hidden rounded-2xl bg-gradient-to-r from-sky-500 to-cyan-500 px-10 py-4 text-base font-semibold text-white shadow-2xl shadow-sky-500/30 ring-1 ring-white/20"
 								>
 									<motion.div
@@ -396,9 +393,9 @@ export default function CinematicHero() {
 										whileHover={{ x: "100%" }}
 										transition={{ duration: 0.6 }}
 									/>
-								</motion.a>
+								</MagneticButton>
 
-								<motion.a
+								<MagneticButton
 									href="#launch"
 									variants={{
 										hidden: {
@@ -418,18 +415,10 @@ export default function CinematicHero() {
 											},
 										},
 									}}
-									whileHover={{
-										scale: 1.05,
-										y: -3,
-										borderColor: "rgba(255,255,255,0.3)",
-										backgroundColor: "rgba(255,255,255,0.1)",
-										transition: { duration: 0.2 },
-									}}
-									whileTap={{ scale: 0.98 }}
 									className="rounded-2xl border border-white/15 bg-white/[0.03] px-10 py-4 text-base font-medium text-white backdrop-blur-md transition-all hover:bg-white/10"
 								>
 									See how we launch
-								</motion.a>
+								</MagneticButton>
 							</motion.div>
 						</motion.div>
 					)}

@@ -1,91 +1,78 @@
 "use client";
 
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo, useCallback } from "react";
+import { getLenisInstance } from "../lib/lenis";
 
 const navLinks = [
   { label: "Services", href: "#services" },
   { label: "Process", href: "#launch" },
-  { label: "Work", href: "#work" },
+  { label: "Interactive Experience", href: "#showcase" },
   { label: "Contact", href: "#contact" },
 ];
 
-function MagneticLink({ href, children, className = "", onClick }: { href: string; children: React.ReactNode; className?: string; onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void }) {
-  const ref = useRef<HTMLAnchorElement>(null);
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  
-  const mouseXSpring = useSpring(x, { stiffness: 500, damping: 100 });
-  const mouseYSpring = useSpring(y, { stiffness: 500, damping: 100 });
-  
-  const translateX = useTransform(mouseXSpring, [-0.5, 0.5], [-8, 8]);
-  const translateY = useTransform(mouseYSpring, [-0.5, 0.5], [-8, 8]);
+const MagneticLink = motion.a;
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    if (!ref.current) return;
-    
-    const rect = ref.current.getBoundingClientRect();
-    const width = rect.width;
-    const height = rect.height;
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-    const xPct = mouseX / width - 0.5;
-    const yPct = mouseY / height - 0.5;
-    
-    x.set(xPct);
-    y.set(yPct);
-  };
-
-  const handleMouseLeave = () => {
-    x.set(0);
-    y.set(0);
-  };
-
-  return (
-    <motion.a
-      ref={ref}
-      href={href}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      onClick={onClick}
-      style={{ x: translateX, y: translateY }}
-      className={className}
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-    >
-      {children}
-    </motion.a>
-  );
-}
-
-export default function Navigation() {
+function Navigation() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("");
 
+  // Optimized scroll handler using Lenis events
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
+    const lenis = getLenisInstance();
+    if (!lenis) return;
+
+    let rafId: number;
+    let lastScrollY = 0;
+    
+    const handleScroll = (e: any) => {
+      const scrollY = e.scroll || window.scrollY;
       
-      // Update active section based on scroll position
-      const sections = navLinks.map(link => link.href.replace('#', ''));
-      const currentSection = sections.find(section => {
-        const element = document.getElementById(section);
-        if (!element) return false;
-        const rect = element.getBoundingClientRect();
-        return rect.top <= 100 && rect.bottom >= 100;
+      // Throttle scroll updates
+      if (Math.abs(scrollY - lastScrollY) < 5) return;
+      lastScrollY = scrollY;
+      
+      rafId = requestAnimationFrame(() => {
+        setIsScrolled(scrollY > 20);
+        
+        // Update active section - only check when scroll changes significantly
+        const sections = navLinks.map(link => link.href.replace('#', ''));
+        const currentSection = sections.find(section => {
+          const element = document.getElementById(section);
+          if (!element) return false;
+          const rect = element.getBoundingClientRect();
+          return rect.top <= 100 && rect.bottom >= 100;
+        });
+        setActiveSection(currentSection ? `#${currentSection}` : '');
       });
-      setActiveSection(currentSection ? `#${currentSection}` : '');
     };
     
-    window.addEventListener("scroll", handleScroll);
-    handleScroll(); // Initial check
-    return () => window.removeEventListener("scroll", handleScroll);
+    lenis.on('scroll', handleScroll);
+    
+    // Initial check
+    handleScroll({ scroll: lenis.scroll || window.scrollY });
+    
+    return () => {
+      lenis.off('scroll', handleScroll);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
   }, []);
 
-  const closeMobileMenu = () => {
+  const closeMobileMenu = useCallback(() => {
     setIsMobileMenuOpen(false);
-  };
+  }, []);
+
+  const handleLogoClick = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    const lenis = getLenisInstance();
+    if (lenis) {
+      lenis.scrollTo(0, { immediate: false });
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+    closeMobileMenu();
+  }, [closeMobileMenu]);
 
   return (
     <motion.nav
@@ -103,11 +90,9 @@ export default function Navigation() {
         <MagneticLink
           href="#"
           className="text-lg font-semibold text-white relative group"
-          onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
-            e.preventDefault();
-            window.scrollTo({ top: 0, behavior: "smooth" });
-            closeMobileMenu();
-          }}
+          onClick={handleLogoClick}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
         >
           <motion.span
             className="relative z-10"
@@ -132,6 +117,8 @@ export default function Navigation() {
                 key={link.href}
                 href={link.href}
                 className="relative text-sm font-medium text-white/70 transition-colors group"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
                 <motion.span
                   className="relative z-10"
@@ -280,4 +267,6 @@ export default function Navigation() {
     </motion.nav>
   );
 }
+
+export default Navigation;
 

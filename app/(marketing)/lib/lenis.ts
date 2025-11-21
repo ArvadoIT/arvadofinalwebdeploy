@@ -52,8 +52,13 @@ export function useLenis(enabled = true) {
     if (!enabled) return;
 
     const lenis = new Lenis({
-      lerp: 0.08,
+      lerp: 0.08, // Optimized lerp for smoother performance
       smoothWheel: true,
+      duration: 1.2, // Slightly longer for smoother feel
+      easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      wheelMultiplier: 1, // Standard wheel multiplier
+      touchMultiplier: 2, // Better touch responsiveness
+      infinite: false, // Disable infinite scroll for performance
     });
 
     lenisInstance = lenis;

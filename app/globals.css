@@ -8,8 +8,48 @@
   --font-orbitron: "Orbitron", system-ui, sans-serif;
 }
 
+html {
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+}
+
 body {
   @apply bg-slate-950 text-white antialiased selection:bg-sky-500/70 selection:text-white;
+  overflow-x: hidden;
+  /* Prevent layout shifts on load */
+  min-height: 100vh;
+}
+
+/* Performance optimizations */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Prevent glitchy reloads - optimize rendering */
+html, body {
+  will-change: scroll-position;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Optimize animations with GPU acceleration */
+[class*="motion-"],
+[data-framer-component] {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Only apply will-change when animating to prevent performance issues */
+[data-framer-component].is-animating {
+  will-change: transform, opacity;
+}
+
+/* Optimize canvas rendering */
+canvas {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 
 .site-reveal {

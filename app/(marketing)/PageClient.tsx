@@ -1,58 +1,65 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, Suspense, lazy, useState } from "react";
 import { useLenis } from "./lib/lenis";
 import { getLenisInstance } from "./lib/lenis";
 import { MotionProvider } from "./components/MotionProvider";
 import Navigation from "./components/Navigation";
 import StickyCTA from "./components/StickyCTA";
 import BookCallDock from "./components/BookCallDock";
+import ScrollProgress from "./components/ScrollProgress";
 import CinematicHero from "./components_new/CinematicHero";
-import ValueGrid from "./components_new/ValueGrid";
 import LaunchSequence from "./components_new/LaunchSequence";
-import CTA from "./components_new/CTA";
-import ContactSimple from "./components_new/ContactSimple";
+import Contact from "./components/Contact";
+import LazyLoadSection from "./components/LazyLoadSection";
+import Perspective3DShowcase from "./components_new/Perspective3DShowcase";
+
+// Lazy load heavy 3D components for better performance
+const ServiceGlobe = lazy(() => import("./components_new/ServiceGlobe"));
 
 export default function PageClient() {
+  const [isReady, setIsReady] = useState(false);
   useLenis(true);
 
-  // Scroll to top on page refresh/load
+  // Optimized scroll to top on page refresh/load - prevents glitchy reload
   useEffect(() => {
-    // Wait for Lenis to be initialized, then scroll to top
-    const scrollToTop = () => {
+    // Prevent flash of unstyled content and ensure smooth initial load
+    const init = () => {
       const lenis = getLenisInstance();
       if (lenis) {
+        // Use immediate scroll to prevent visual glitch
         lenis.scrollTo(0, { immediate: true });
+        // Mark as ready after a brief delay to ensure everything is initialized
+        requestAnimationFrame(() => {
+          setIsReady(true);
+        });
       } else {
         // Fallback to native scroll
         window.scrollTo(0, 0);
+        setIsReady(true);
       }
     };
 
-    // Try immediately
-    scrollToTop();
-
-    // Also try after a short delay to ensure Lenis is initialized
-    const timeoutId = setTimeout(() => {
-      scrollToTop();
-    }, 100);
-
-    return () => {
-      clearTimeout(timeoutId);
-    };
+    // Use requestAnimationFrame for smoother initialization
+    requestAnimationFrame(init);
   }, []);
 
   return (
     <MotionProvider>
+      <ScrollProgress />
       <Navigation />
       <div className="pt-16 w-full overflow-x-hidden">
         <CinematicHero />
-        <section id="services">
-          <ValueGrid />
-        </section>
+        <LazyLoadSection>
+          <Suspense fallback={null}>
+            <ServiceGlobe />
+          </Suspense>
+        </LazyLoadSection>
         <LaunchSequence />
-        <CTA />
-        <ContactSimple />
+        <Perspective3DShowcase />
+        <LazyLoadSection>
+          <Contact />
+        </LazyLoadSection>
       </div>
       <StickyCTA />
       <BookCallDock />

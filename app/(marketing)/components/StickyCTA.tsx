@@ -1,7 +1,8 @@
 "use client";
 
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { getLenisInstance } from "../lib/lenis";
 
 export default function StickyCTA() {
   const [isVisible, setIsVisible] = useState(false);
@@ -16,16 +17,35 @@ export default function StickyCTA() {
   const translateY = useTransform(mouseYSpring, [-0.5, 0.5], [-10, 10]);
 
   useEffect(() => {
-    const handleScroll = () => {
-      // Show after scrolling past ~600px (past hero section)
-      setIsVisible(window.scrollY > 600);
+    const lenis = getLenisInstance();
+    if (!lenis) {
+      // Fallback to native scroll if Lenis not available
+      const handleScroll = () => {
+        setIsVisible(window.scrollY > 600);
+      };
+      window.addEventListener("scroll", handleScroll, { passive: true });
+      handleScroll();
+      return () => window.removeEventListener("scroll", handleScroll);
+    }
+
+    let rafId: number;
+    const handleScroll = (e: any) => {
+      rafId = requestAnimationFrame(() => {
+        const scrollY = e.scroll || window.scrollY;
+        setIsVisible(scrollY > 600);
+      });
     };
-    window.addEventListener("scroll", handleScroll);
-    handleScroll(); // Check initial state
-    return () => window.removeEventListener("scroll", handleScroll);
+    
+    lenis.on('scroll', handleScroll);
+    handleScroll({ scroll: lenis.scroll || window.scrollY });
+    
+    return () => {
+      lenis.off('scroll', handleScroll);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
   }, []);
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLAnchorElement>) => {
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
     if (!ref.current) return;
     
     const rect = ref.current.getBoundingClientRect();
@@ -38,12 +58,12 @@ export default function StickyCTA() {
     
     x.set(xPct);
     y.set(yPct);
-  };
+  }, [x, y]);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     x.set(0);
     y.set(0);
-  };
+  }, [x, y]);
 
   return (
     <AnimatePresence>

@@ -2,11 +2,11 @@
  
  import { motion, useScroll, useTransform, useMotionValue, useSpring } from "framer-motion";
  import { useMotionSettings } from "./MotionProvider";
- import { useRef } from "react";
+ import { useRef, useState, useEffect } from "react";
  
  export default function BookCallDock() {
    const { reduceMotion } = useMotionSettings();
-   const { scrollYProgress } = useScroll();
+   const { scrollYProgress } = useScroll({ layoutEffect: false });
    const ref = useRef<HTMLAnchorElement>(null);
    const x = useMotionValue(0);
    const y = useMotionValue(0);
@@ -17,6 +17,21 @@
    // Reveal the dock after initial hero scroll, keep subtle movement
    const opacity = useTransform(scrollYProgress, [0.08, 0.18], [0, 1]);
    const yTransform = useTransform(scrollYProgress, [0.08, 0.18], [16, 0]);
+   
+   // Optimize will-change only during scroll
+   const [isScrolling, setIsScrolling] = useState(false);
+   useEffect(() => {
+     let timeoutId: NodeJS.Timeout;
+     const unsubscribe = scrollYProgress.on('change', () => {
+       setIsScrolling(true);
+       clearTimeout(timeoutId);
+       timeoutId = setTimeout(() => setIsScrolling(false), 150);
+     });
+     return () => {
+       unsubscribe();
+       clearTimeout(timeoutId);
+     };
+   }, [scrollYProgress]);
  
    const handleMouseMove = (e: React.MouseEvent<HTMLAnchorElement>) => {
      if (!ref.current) return;
@@ -41,7 +56,11 @@
    return (
      <motion.div
        className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2"
-       style={reduceMotion ? undefined : { opacity, y: yTransform }}
+       style={reduceMotion ? undefined : { 
+         opacity, 
+         y: yTransform,
+         willChange: isScrolling ? 'transform, opacity' : 'auto',
+       }}
        initial={reduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
        animate={{ opacity: 1, y: 0 }}
        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
