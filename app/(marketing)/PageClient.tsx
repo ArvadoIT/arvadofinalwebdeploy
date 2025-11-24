@@ -5,14 +5,13 @@ import { useLenis } from "./lib/lenis";
 import { getLenisInstance } from "./lib/lenis";
 import { MotionProvider } from "./components/MotionProvider";
 import Navigation from "./components/Navigation";
-import StickyCTA from "./components/StickyCTA";
-import BookCallDock from "./components/BookCallDock";
 import ScrollProgress from "./components/ScrollProgress";
 import CinematicHero from "./components_new/CinematicHero";
 import LaunchSequence from "./components_new/LaunchSequence";
 import Contact from "./components/Contact";
 import LazyLoadSection from "./components/LazyLoadSection";
 import Perspective3DShowcase from "./components_new/Perspective3DShowcase";
+import Footer from "./components/Footer";
 
 // Lazy load heavy 3D components for better performance
 const ServiceGlobe = lazy(() => import("./components_new/ServiceGlobe"));
@@ -60,9 +59,8 @@ export default function PageClient() {
         <LazyLoadSection>
           <Contact />
         </LazyLoadSection>
+        <Footer />
       </div>
-      <StickyCTA />
-      <BookCallDock />
     </MotionProvider>
   );
 }

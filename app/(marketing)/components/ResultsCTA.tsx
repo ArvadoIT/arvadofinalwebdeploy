@@ -27,7 +27,7 @@ export default function ResultsCTA() {
               Book a strategy session
             </a>
             <a
-              href="mailto:team@arvado.ca"
+              href="mailto:hello@arvado.ca"
               className="rounded-2xl border border-white/20 bg-white/5 px-6 py-3 text-sm text-white transition hover:bg-white/10"
             >
               Email the team

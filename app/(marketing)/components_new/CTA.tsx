@@ -130,7 +130,7 @@ export default function CTA() {
                 </motion.a>
                 
                 <motion.a
-                  href="mailto:team@arvado.ca"
+                  href="mailto:hello@arvado.ca"
                   className="rounded-2xl border border-white/20 bg-white/5 px-6 py-3 text-sm text-white transition-all relative overflow-hidden"
                   whileHover={{ scale: 1.02, borderColor: "rgba(255, 255, 255, 0.3)", backgroundColor: "rgba(255, 255, 255, 0.1)" }}
                   whileTap={{ scale: 0.98 }}

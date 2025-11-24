@@ -144,7 +144,7 @@ export default function Chapters() {
                             Plan my launch roadmap
                           </a>
                           <a
-                            href="mailto:team@arvado.ca"
+                            href="mailto:hello@arvado.ca"
                             className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-6 py-3 text-sm text-white transition hover:bg-white/10"
                           >
                             Ask about retainers

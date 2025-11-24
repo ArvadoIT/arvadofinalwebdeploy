@@ -231,7 +231,7 @@ These are the components currently in use:
 - Message/What do you need? (textarea, 4 rows)
 
 **Submission:**
-- Action URL: `https://formsubmit.co/team@arvado.ca`
+- Action URL: `https://formsubmit.co/hello@arvado.ca`
 - Hidden fields: `_captcha=false`, `_template=table`, `_subject=New Arvado inquiry`
 
 ---

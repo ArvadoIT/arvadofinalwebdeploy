@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { getLenisInstance } from "../lib/lenis";
 
 const navLinks = [
@@ -14,6 +15,9 @@ const navLinks = [
 const MagneticLink = motion.a;
 
 function Navigation() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const isHomePage = pathname === "/";
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("");
@@ -65,14 +69,111 @@ function Navigation() {
 
   const handleLogoClick = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
-    const lenis = getLenisInstance();
-    if (lenis) {
-      lenis.scrollTo(0, { immediate: false });
-    } else {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
     closeMobileMenu();
-  }, [closeMobileMenu]);
+    
+    if (isHomePage) {
+      // On home page, just scroll to top
+      const lenis = getLenisInstance();
+      if (lenis) {
+        lenis.scrollTo(0, { immediate: false });
+      } else {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    } else {
+      // On other pages, navigate to home
+      router.push("/");
+    }
+  }, [closeMobileMenu, isHomePage, router]);
+
+  const handleNavClick = useCallback((e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!href || href === "#" || href.length < 2) return;
+    
+    closeMobileMenu();
+    
+    // If not on home page, navigate to home page with hash
+    if (!isHomePage) {
+      // Use full page navigation to preserve hash - Lenis will handle it on page load
+      window.location.href = "/" + href;
+      return;
+    }
+    
+    // On home page, use existing scroll behavior
+    const lenis = getLenisInstance();
+    const targetId = decodeURIComponent(href.replace("#", ""));
+    const SCROLL_OFFSET = -96;
+    
+    // Function to scroll to target - matches lenis.ts scrollToHash behavior
+    const scrollToTarget = (target: HTMLElement) => {
+      if (lenis) {
+        // Match the exact options from lenis.ts scrollToHash
+        lenis.scrollTo(target, {
+          offset: SCROLL_OFFSET,
+          duration: 0.9,
+          easing: (t: number) => 1 - Math.pow(1 - t, 3),
+        });
+        window.history.pushState(null, "", href);
+        requestAnimationFrame(() => {
+          // Focus target with preventScroll to avoid double scroll
+          const previousTabIndex = target.getAttribute("tabindex");
+          if (previousTabIndex === null) {
+            target.setAttribute("tabindex", "-1");
+          }
+          target.focus({ preventScroll: true });
+          if (previousTabIndex === null) {
+            target.removeAttribute("tabindex");
+          }
+        });
+      } else {
+        // Fallback to native scroll
+        const elementTop = target.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({
+          top: elementTop + SCROLL_OFFSET,
+          behavior: "smooth",
+        });
+        window.history.pushState(null, "", href);
+      }
+    };
+
+    // Try to find target immediately
+    let target = document.getElementById(targetId);
+    
+    if (target) {
+      // Use requestAnimationFrame to ensure Lenis is ready and DOM is stable
+      requestAnimationFrame(() => {
+        scrollToTarget(target!);
+      });
+      return;
+    }
+
+    // If target not found (might be lazy-loaded), wait for it with retries
+    // LazyLoadSection will render when it detects navigation to a missing element
+    let retryCount = 0;
+    const maxRetries = 30; // 3 seconds max wait (30 * 100ms)
+    
+    const findAndScroll = () => {
+      target = document.getElementById(targetId);
+      
+      if (target) {
+        // Use requestAnimationFrame to ensure Lenis is ready
+        requestAnimationFrame(() => {
+          scrollToTarget(target!);
+        });
+        return;
+      }
+      
+      retryCount++;
+      if (retryCount < maxRetries) {
+        // Check again after a short delay
+        // LazyLoadSection should have rendered by now
+        setTimeout(findAndScroll, 100);
+      }
+    };
+    
+    // Start looking for the element after a brief delay to allow lazy load to trigger
+    setTimeout(findAndScroll, 150);
+  }, [closeMobileMenu, isHomePage, router]);
 
   return (
     <motion.nav
@@ -88,7 +189,7 @@ function Navigation() {
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-4 lg:px-8 relative">
         {/* Logo/Brand */}
         <MagneticLink
-          href="#"
+          href="/"
           className="text-lg font-semibold text-white relative group"
           onClick={handleLogoClick}
           whileHover={{ scale: 1.05 }}
@@ -119,6 +220,7 @@ function Navigation() {
                 className="relative text-sm font-medium text-white/70 transition-colors group"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
+                onClick={(e) => handleNavClick(e, link.href)}
               >
                 <motion.span
                   className="relative z-10"
@@ -152,6 +254,7 @@ function Navigation() {
           className="hidden rounded-xl bg-sky-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-500/20 transition-all md:inline-block relative overflow-hidden group"
           whileHover={{ scale: 1.05, y: -2 }}
           whileTap={{ scale: 0.95 }}
+          onClick={(e) => handleNavClick(e, "#contact")}
         >
           <motion.div
             className="absolute inset-0 bg-gradient-to-r from-sky-400 to-cyan-400 opacity-0 group-hover:opacity-100"
@@ -228,7 +331,9 @@ function Navigation() {
                 <motion.a
                   key={link.href}
                   href={link.href}
-                  onClick={closeMobileMenu}
+                  onClick={(e) => {
+                    handleNavClick(e, link.href);
+                  }}
                   className="block py-2 text-sm font-medium text-white/70 transition-colors hover:text-white relative group"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -244,7 +349,9 @@ function Navigation() {
               ))}
               <motion.a
                 href="#contact"
-                onClick={closeMobileMenu}
+                onClick={(e) => {
+                  handleNavClick(e, "#contact");
+                }}
                 className="block rounded-xl bg-sky-500 px-5 py-3 text-sm font-semibold text-white text-center shadow-lg shadow-sky-500/20 transition-all hover:bg-sky-400 mt-4 relative overflow-hidden group"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}

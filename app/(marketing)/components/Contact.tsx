@@ -9,8 +9,8 @@ const contactDetails = [
   {
     icon: Mail,
     label: "Email",
-    value: "team@arvado.ca",
-    href: "mailto:team@arvado.ca",
+    value: "hello@arvado.ca",
+    href: "mailto:hello@arvado.ca",
   },
   {
     icon: Phone,
@@ -112,7 +112,7 @@ function ConfettiParticles() {
 }
 
 export default function Contact() {
-  const actionUrl = "https://formsubmit.co/team@arvado.ca";
+  const actionUrl = "https://formsubmit.co/hello@arvado.ca";
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -125,6 +125,7 @@ export default function Contact() {
   const formRef = useRef<HTMLDivElement>(null);
   const formInView = useInView(formRef, { once: false, amount: 0.3 });
   const [formHasAppeared, setFormHasAppeared] = useState(false);
+  
 
   const handleSubmit = useCallback(
     async (event: React.FormEvent<HTMLFormElement>) => {
@@ -773,6 +774,7 @@ export default function Contact() {
           </div>
         </div>
       </SectionFade>
+
     </section>
   );
 }
