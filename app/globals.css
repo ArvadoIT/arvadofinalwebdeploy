@@ -28,17 +28,15 @@ body {
 
 /* Prevent glitchy reloads - optimize rendering */
 html, body {
-  will-change: scroll-position;
+  /* Removed will-change for better performance - only use when actively animating */
   transform: translateZ(0);
   backface-visibility: hidden;
 }
 
-/* Optimize animations with GPU acceleration */
-[class*="motion-"],
+/* Optimize animations with GPU acceleration - only for actively animating elements */
 [data-framer-component] {
   transform: translateZ(0);
   backface-visibility: hidden;
-  perspective: 1000px;
 }
 
 /* Only apply will-change when animating to prevent performance issues */
@@ -82,13 +80,29 @@ canvas {
 }
 
 @layer utilities {
+  /* Simple fade-in animation for performance */
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.6s ease-out forwards;
+  }
+
   .gradient-border {
     border-image: linear-gradient(135deg, rgba(14, 165, 233, 0.35), rgba(236, 72, 153, 0.25)) 1;
   }
 
-  /* Glass theme text */
+  /* Glass theme text - using Inter */
   .text-glass {
-    font-family: var(--font-glass);
+    font-family: var(--font-inter);
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.7) 50%, rgba(255, 255, 255, 0.5) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -96,7 +110,7 @@ canvas {
     filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.2)) drop-shadow(0 2px 4px rgba(255, 255, 255, 0.1));
   }
 
-  /* Frozen theme text */
+  /* Frozen theme text - using Space Grotesk */
   .text-frozen {
     font-family: var(--font-frozen);
     background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 25%, #bae6fd 50%, #7dd3fc 75%, #38bdf8 100%);
@@ -104,34 +118,6 @@ canvas {
     -webkit-text-fill-color: transparent;
     background-clip: text;
     filter: drop-shadow(0 0 30px rgba(125, 211, 252, 0.5)) drop-shadow(0 0 60px rgba(56, 189, 248, 0.3));
-  }
-
-  /* Water theme text */
-  .text-water {
-    font-family: var(--font-water);
-    background: linear-gradient(135deg, #06b6d4 0%, #0891b2 50%, #0e7490 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    filter: drop-shadow(0 0 25px rgba(6, 182, 212, 0.5));
-    position: relative;
-    background-size: 200% 100%;
-    animation: water-flow 4s ease-in-out infinite;
-  }
-
-  @keyframes water-flow {
-    0%, 100% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-  }
-
-  /* Metal theme text */
-  .text-metal {
-    font-family: var(--font-metal);
-    background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 20%, #cbd5e1 40%, #94a3b8 60%, #64748b 80%, #475569 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4)) drop-shadow(0 0 30px rgba(255, 255, 255, 0.25)) drop-shadow(0 4px 12px rgba(255, 255, 255, 0.1));
   }
 
   /* --- GLOBAL CINEMATIC UTILITIES --- */
@@ -149,7 +135,7 @@ canvas {
       rgba(120, 180, 255, 0.10),
       rgba(0, 0, 0, 0) 70%
     );
-    filter: blur(90px);
+    filter: blur(60px); /* Reduced blur for better performance */
     opacity: 0.6;
     pointer-events: none;
   }
@@ -244,7 +230,7 @@ canvas {
     height: 300px;
     border-radius: 9999px;
     background: rgba(90, 150, 255, 0.15);
-    filter: blur(120px);
+    filter: blur(80px); /* Reduced blur for better performance */
   }
 
   .control-glow-amber {
@@ -255,7 +241,7 @@ canvas {
     height: 280px;
     border-radius: 9999px;
     background: rgba(255, 170, 90, 0.15);
-    filter: blur(110px);
+    filter: blur(75px); /* Reduced blur for better performance */
   }
 
   .metric-scanline {

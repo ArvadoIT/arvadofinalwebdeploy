@@ -1,13 +1,21 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { motion, useScroll } from "framer-motion";
 import { useMotionSettings } from "./MotionProvider";
 
 export default function ScrollProgress() {
-  const { scrollYProgress } = useScroll({ layoutEffect: false }); // Performance optimization
+  const [mounted, setMounted] = useState(false);
+  const { scrollYProgress } = useScroll({ layoutEffect: false });
   const { reduceMotion } = useMotionSettings();
 
-  if (reduceMotion) return null;
+  // Defer mounting to reduce initial load
+  useEffect(() => {
+    const timer = setTimeout(() => setMounted(true), 1000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (reduceMotion || !mounted) return null;
 
   return (
     <motion.div

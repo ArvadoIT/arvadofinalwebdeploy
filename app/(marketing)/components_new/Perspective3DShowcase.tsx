@@ -65,8 +65,8 @@ function Model3D({ scrollProgressRef }: { scrollProgressRef: MutableRefObject<nu
 
   return (
     <group>
-      {/* Ultra-realistic primary model - Smooth sphere */}
-      <Sphere ref={meshRef} args={[1.5, 64, 64]}>
+      {/* Ultra-realistic primary model - Reduced geometry for better performance */}
+      <Sphere ref={meshRef} args={[1.5, 48, 48]}>
         {/* @ts-ignore */}
         <MeshDistortMaterial
           ref={materialRef}
@@ -74,9 +74,9 @@ function Model3D({ scrollProgressRef }: { scrollProgressRef: MutableRefObject<nu
         />
       </Sphere>
       
-      {/* Ultra-realistic metallic ring - reduced segments for performance */}
+      {/* Ultra-realistic metallic ring - further reduced segments for performance */}
       <Torus
-        args={[2.2, 0.12, 24, 64]} // Reduced segments for better performance
+        args={[2.2, 0.12, 16, 32]} // Further reduced segments for better performance
         rotation={[Math.PI / 2, 0, 0]}
       >
         <meshStandardMaterial
@@ -92,7 +92,7 @@ function Model3D({ scrollProgressRef }: { scrollProgressRef: MutableRefObject<nu
       
       {/* Inner ring detail - reduced segments */}
       <Torus
-        args={[2.15, 0.03, 12, 32]}
+        args={[2.15, 0.03, 8, 16]}
         rotation={[Math.PI / 2, 0, 0]}
       >
         <meshStandardMaterial
@@ -214,10 +214,10 @@ function Scene3D({ scrollProgressRef }: { scrollProgressRef: MutableRefObject<nu
       {/* 3D Model */}
       <Model3D scrollProgressRef={scrollProgressRef} />
       
-      {/* Ultra-realistic environment for reflections */}
+      {/* Ultra-realistic environment for reflections - lower resolution for performance */}
       <Environment 
         preset="city"
-        resolution={256} // Optimized resolution for performance
+        resolution={128} // Further reduced resolution for better performance
         background={false}
       />
       
@@ -263,19 +263,19 @@ export default function Perspective3DShowcase() {
   
   // Memoize Canvas GL config for performance
   const glConfig = useMemo(() => ({
-    antialias: true,
+    antialias: false, // Disable antialiasing for better performance
     powerPreference: "high-performance" as const,
     alpha: true,
     stencil: false, // Disable stencil buffer for performance
     depth: true,
     logarithmicDepthBuffer: false, // Disable for performance
-    precision: "highp" as const,
+    precision: "mediump" as const, // Use medium precision for better performance
   }), []);
   
-  // Adaptive DPR based on device capabilities
+  // Adaptive DPR based on device capabilities - capped for better performance
   const adaptiveDPR = useMemo((): [number, number] => {
-    if (typeof window === 'undefined') return [1, 2];
-    return [1, Math.min(window.devicePixelRatio || 1, 2)];
+    if (typeof window === 'undefined') return [1, 1.5];
+    return [1, Math.min(window.devicePixelRatio || 1, 1.5)];
   }, []);
   
   return (

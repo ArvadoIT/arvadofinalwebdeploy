@@ -1,7 +1,7 @@
 "use client";
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Sphere, Text, PerspectiveCamera, OrbitControls } from "@react-three/drei";
+import { Sphere, Text, PerspectiveCamera, OrbitControls, Html } from "@react-three/drei";
 import { Suspense, useRef, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMotionSettings } from "../components/MotionProvider";
@@ -77,7 +77,54 @@ const services = [
   },
 ];
 
-// Hotspot marker component with service-specific colors
+// HTML label component - clean, minimal styling
+function Label({ 
+  children, 
+  position,
+  color,
+  isActive,
+  isHovered
+}: { 
+  children: React.ReactNode;
+  position: [number, number, number];
+  color: string;
+  isActive: boolean;
+  isHovered: boolean;
+}) {
+  const isHighlighted = isActive || isHovered;
+  
+  return (
+    <Html
+      position={position}
+      center
+      transform
+      occlude={false}
+      zIndexRange={[100, 0]}
+      style={{
+        pointerEvents: 'none',
+        userSelect: 'none',
+      }}
+    >
+      <div
+        style={{
+          color: isHighlighted ? color : 'rgba(148, 163, 184, 0.7)',
+          fontSize: '12px',
+          fontWeight: '500',
+          fontFamily: 'var(--font-inter), system-ui, sans-serif',
+          textAlign: 'center',
+          whiteSpace: 'nowrap',
+          letterSpacing: '0.05em',
+          textShadow: '0 1px 3px rgba(0, 0, 0, 0.8)',
+          transform: 'translateY(-100%)',
+        }}
+      >
+        {children}
+      </div>
+    </Html>
+  );
+}
+
+// Hotspot marker component - minimal, tech-forward design
 function Hotspot({
   position,
   serviceId,
@@ -91,182 +138,146 @@ function Hotspot({
   isActive: boolean;
   serviceColor: string;
 }) {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const ringRef = useRef<THREE.Mesh>(null);
-  const ripple1Ref = useRef<THREE.Mesh>(null);
-  const ripple2Ref = useRef<THREE.Mesh>(null);
-  const ripple3Ref = useRef<THREE.Mesh>(null);
+  const groupRef = useRef<THREE.Group>(null);
+  const innerDotRef = useRef<THREE.Mesh>(null);
+  const crosshairRef = useRef<THREE.Group>(null);
   const [isHovered, setIsHovered] = useState(false);
   const { reduceMotion } = useMotionSettings();
 
-  // Get color based on service
+  // Get subtle color based on service - more muted, professional
   const getColor = () => {
-    if (serviceColor.includes('cyan')) return { main: '#06b6d4', light: '#22d3ee', glow: '#67e8f9' };
-    if (serviceColor.includes('purple')) return { main: '#a855f7', light: '#c084fc', glow: '#d8b4fe' };
-    if (serviceColor.includes('emerald')) return { main: '#10b981', light: '#34d399', glow: '#6ee7b7' };
-    return { main: '#f59e0b', light: '#fbbf24', glow: '#fcd34d' }; // amber
+    if (serviceColor.includes('cyan')) return { 
+      accent: '#0ea5e9', 
+      glow: 'rgba(14, 165, 233, 0.15)',
+      line: 'rgba(14, 165, 233, 0.4)'
+    };
+    if (serviceColor.includes('purple')) return { 
+      accent: '#8b5cf6', 
+      glow: 'rgba(139, 92, 246, 0.15)',
+      line: 'rgba(139, 92, 246, 0.4)'
+    };
+    if (serviceColor.includes('emerald')) return { 
+      accent: '#10b981', 
+      glow: 'rgba(16, 185, 129, 0.15)',
+      line: 'rgba(16, 185, 129, 0.4)'
+    };
+    return { 
+      accent: '#f59e0b', 
+      glow: 'rgba(245, 158, 11, 0.15)',
+      line: 'rgba(245, 158, 11, 0.4)'
+    }; // amber
   };
 
   const colors = getColor();
+
+  const { camera } = useThree();
 
   useFrame(({ clock }) => {
     if (reduceMotion) return;
     const time = clock.getElapsedTime();
     
-    // Pulsing animation for sphere
-    if (meshRef.current) {
-      const baseScale = isHovered ? 1.2 : 1;
-      const pulseScale = isActive ? 1 + Math.sin(time * 3) * 0.15 : 1 + Math.sin(time * 2) * 0.1;
-      meshRef.current.scale.setScalar(baseScale * pulseScale);
+    // Make hotspot group always face camera (billboard effect)
+    if (groupRef.current) {
+      const worldPos = new THREE.Vector3();
+      groupRef.current.getWorldPosition(worldPos);
+      groupRef.current.lookAt(camera.position);
     }
     
-    // Rotating ring animation
-    if (ringRef.current) {
-      ringRef.current.rotation.z = time * 0.5;
+    // Subtle pulse for inner dot
+    if (innerDotRef.current) {
+      const pulse = isActive || isHovered 
+        ? 1 + Math.sin(time * 2) * 0.08 
+        : 1 + Math.sin(time * 1.5) * 0.04;
+      innerDotRef.current.scale.setScalar(pulse);
     }
 
-    // Ripple animations on hover
-    if (isHovered) {
-      const rippleSpeed = 2;
-      const rippleDelay = 0.3;
-      
-      if (ripple1Ref.current) {
-        const progress = (time % (rippleDelay * 3)) / rippleDelay;
-        ripple1Ref.current.scale.setScalar(1 + progress * 2);
-        const opacity = Math.max(0, 1 - progress);
-        if (ripple1Ref.current.material) {
-          (ripple1Ref.current.material as THREE.MeshBasicMaterial).opacity = opacity * 0.6;
-        }
-      }
-      
-      if (ripple2Ref.current) {
-        const progress = ((time + rippleDelay) % (rippleDelay * 3)) / rippleDelay;
-        ripple2Ref.current.scale.setScalar(1 + progress * 2);
-        const opacity = Math.max(0, 1 - progress);
-        if (ripple2Ref.current.material) {
-          (ripple2Ref.current.material as THREE.MeshBasicMaterial).opacity = opacity * 0.4;
-        }
-      }
-      
-      if (ripple3Ref.current) {
-        const progress = ((time + rippleDelay * 2) % (rippleDelay * 3)) / rippleDelay;
-        ripple3Ref.current.scale.setScalar(1 + progress * 2);
-        const opacity = Math.max(0, 1 - progress);
-        if (ripple3Ref.current.material) {
-          (ripple3Ref.current.material as THREE.MeshBasicMaterial).opacity = opacity * 0.3;
-        }
-      }
-    } else {
-      // Reset ripples when not hovered
-      if (ripple1Ref.current) {
-        ripple1Ref.current.scale.setScalar(1);
-        if (ripple1Ref.current.material) {
-          (ripple1Ref.current.material as THREE.MeshBasicMaterial).opacity = 0;
-        }
-      }
-      if (ripple2Ref.current) {
-        ripple2Ref.current.scale.setScalar(1);
-        if (ripple2Ref.current.material) {
-          (ripple2Ref.current.material as THREE.MeshBasicMaterial).opacity = 0;
-        }
-      }
-      if (ripple3Ref.current) {
-        ripple3Ref.current.scale.setScalar(1);
-        if (ripple3Ref.current.material) {
-          (ripple3Ref.current.material as THREE.MeshBasicMaterial).opacity = 0;
-        }
-      }
+    // Subtle crosshair rotation (relative to hotspot, not globe)
+    if (crosshairRef.current) {
+      crosshairRef.current.rotation.z = time * 0.2;
     }
   });
 
-  return (
-    <group position={position}>
-      {/* Ripple effects on hover */}
-      {isHovered && (
-        <>
-          <mesh ref={ripple1Ref}>
-            <ringGeometry args={[0.15, 0.18, 32]} />
-            <meshBasicMaterial
-              color={colors.glow}
-              transparent
-              opacity={0}
-              side={THREE.DoubleSide}
-            />
-          </mesh>
-          <mesh ref={ripple2Ref}>
-            <ringGeometry args={[0.15, 0.18, 32]} />
-            <meshBasicMaterial
-              color={colors.light}
-              transparent
-              opacity={0}
-              side={THREE.DoubleSide}
-            />
-          </mesh>
-          <mesh ref={ripple3Ref}>
-            <ringGeometry args={[0.15, 0.18, 32]} />
-            <meshBasicMaterial
-              color={colors.main}
-              transparent
-              opacity={0}
-              side={THREE.DoubleSide}
-            />
-          </mesh>
-        </>
-      )}
+  const baseScale = isHovered ? 1.15 : 1;
+  const glowIntensity = isActive || isHovered ? 1.2 : 0.6;
 
-      {/* Outer rotating glow ring */}
-      <mesh ref={ringRef}>
-        <ringGeometry args={[0.12, 0.15, 32]} />
+  return (
+    <group position={position} ref={groupRef} scale={baseScale}>
+      {/* Minimal crosshair */}
+      <group ref={crosshairRef}>
+        <mesh>
+          <boxGeometry args={[0.15, 0.002, 0.002]} />
+          <meshBasicMaterial
+            color={colors.accent}
+            transparent
+            opacity={isActive || isHovered ? 0.4 : 0.2}
+          />
+        </mesh>
+        <mesh>
+          <boxGeometry args={[0.002, 0.15, 0.002]} />
+          <meshBasicMaterial
+            color={colors.accent}
+            transparent
+            opacity={isActive || isHovered ? 0.4 : 0.2}
+          />
+        </mesh>
+      </group>
+      
+      {/* Clickable area */}
+      <mesh 
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick();
+        }}
+        onPointerOver={(e) => {
+          e.stopPropagation();
+          setIsHovered(true);
+          document.body.style.cursor = 'pointer';
+        }} 
+        onPointerOut={() => {
+          setIsHovered(false);
+          document.body.style.cursor = 'default';
+        }}
+      >
+        <sphereGeometry args={[0.15, 16, 16]} />
         <meshBasicMaterial
-          color={colors.glow}
           transparent
-          opacity={isActive || isHovered ? 0.9 : 0.5}
+          opacity={0}
           side={THREE.DoubleSide}
         />
       </mesh>
       
-      {/* Middle ring */}
-      <mesh>
-        <ringGeometry args={[0.10, 0.12, 32]} />
-        <meshBasicMaterial
-          color={colors.light}
-          transparent
-          opacity={isActive || isHovered ? 0.6 : 0.3}
-          side={THREE.DoubleSide}
-        />
-      </mesh>
-      
-      {/* Inner sphere */}
-      <mesh ref={meshRef} onClick={onClick} onPointerOver={(e) => {
-        e.stopPropagation();
-        setIsHovered(true);
-        document.body.style.cursor = 'pointer';
-      }} onPointerOut={() => {
-        setIsHovered(false);
-        document.body.style.cursor = 'default';
-      }}>
-        <sphereGeometry args={[0.08, 16, 16]} />
+      {/* Central dot */}
+      <mesh ref={innerDotRef}>
+        <sphereGeometry args={[0.05, 12, 12]} />
         <meshStandardMaterial
-          color={colors.main}
-          emissive={colors.main}
-          emissiveIntensity={isActive || isHovered ? 2.5 : 1}
-          metalness={0.9}
-          roughness={0.1}
+          color={colors.accent}
+          emissive={colors.accent}
+          emissiveIntensity={glowIntensity}
+          metalness={0.7}
+          roughness={0.3}
         />
       </mesh>
       
-      {/* Number label */}
-      <Text
-        position={[0, -0.25, 0]}
-        fontSize={0.15}
-        color={isActive || isHovered ? "#ffffff" : colors.light}
-        anchorX="center"
-        anchorY="middle"
-        outlineWidth={0.02}
-        outlineColor="#000000"
+      {/* Subtle glow */}
+      <mesh>
+        <sphereGeometry args={[0.075, 12, 12]} />
+        <meshBasicMaterial
+          color={colors.accent}
+          transparent
+          opacity={isActive || isHovered ? 0.1 : 0.05}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      
+      {/* Number label - always visible, not occluded by globe */}
+      <Label
+        position={[0, -0.22, 0]}
+        color={colors.accent}
+        isActive={isActive}
+        isHovered={isHovered}
       >
         {serviceId.toString().padStart(2, "0")}
-      </Text>
+      </Label>
     </group>
   );
 }
@@ -278,9 +289,9 @@ function Globe({ selectedService, onServiceClick }: { selectedService: number | 
 
   return (
     <group>
-      {/* Main globe sphere - reduced geometry for performance */}
+      {/* Main globe sphere - further reduced geometry for better performance */}
       <mesh ref={globeRef}>
-        <sphereGeometry args={[2, 48, 48]} />
+        <sphereGeometry args={[2, 32, 32]} />
         <meshStandardMaterial
           color="#1e293b"
           metalness={0.3}
@@ -292,7 +303,7 @@ function Globe({ selectedService, onServiceClick }: { selectedService: number | 
       
       {/* Wireframe overlay for futuristic look - reduced segments */}
       <mesh>
-        <sphereGeometry args={[2.01, 24, 24]} />
+        <sphereGeometry args={[2.01, 16, 16]} />
         <meshBasicMaterial
           color="#0ea5e9"
           wireframe
@@ -473,45 +484,9 @@ export default function ServiceGlobe() {
       {/* Enhanced background effects */}
       <div className="pointer-events-none absolute inset-0 -z-10">
         {/* Animated gradient orbs */}
-        <motion.div
-          className="absolute -left-32 top-10 h-72 w-72 rounded-full bg-cyan-500/12 blur-3xl"
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.3, 0.5, 0.3],
-          }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-        <motion.div
-          className="absolute bottom-[-260px] right-[-120px] h-[520px] w-[520px] rounded-full bg-violet-500/35 blur-3xl"
-          animate={{
-            scale: [1, 1.15, 1],
-            opacity: [0.4, 0.6, 0.4],
-          }}
-          transition={{
-            duration: 10,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 1,
-          }}
-        />
-        
-        {/* Additional accent glow */}
-        <motion.div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-sky-500/5 blur-3xl"
-          animate={{
-            scale: [1, 1.1, 1],
-            opacity: [0.2, 0.4, 0.2],
-          }}
-          transition={{
-            duration: 12,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
+        {/* Static background effects - removed animations for better performance */}
+        <div className="absolute -left-32 top-10 h-72 w-72 rounded-full bg-cyan-500/12 blur-3xl opacity-40" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-sky-500/5 blur-3xl opacity-30" />
         
         {/* Grid pattern */}
         <div className="absolute inset-0 opacity-[0.02]">
@@ -584,9 +559,9 @@ export default function ServiceGlobe() {
             <div className="absolute -inset-4 rounded-3xl bg-gradient-to-br from-sky-500/10 via-transparent to-purple-500/10 blur-2xl opacity-50" />
             
             <Canvas
-              dpr={typeof window !== 'undefined' ? [1, Math.min(window.devicePixelRatio || 1, 2)] : [1, 2]}
+              dpr={typeof window !== 'undefined' ? [1, Math.min(window.devicePixelRatio || 1, 1.5)] : [1, 1.5]}
               gl={{
-                antialias: true,
+                antialias: false,
                 powerPreference: "high-performance",
                 alpha: true,
                 stencil: false,

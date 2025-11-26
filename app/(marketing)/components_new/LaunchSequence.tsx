@@ -92,7 +92,7 @@ export default function LaunchSequence() {
         </Reveal>
 
         {/* Single-column chapters */}
-        <div className="space-y-24 md:space-y-32 lg:space-y-40">
+        <div className="space-y-48 md:space-y-64 lg:space-y-80">
           {steps.map((step, index) => (
             <Reveal key={step.id} delay={index * 0.08}>
               <article className="group relative border-t border-white/10 pt-12 md:pt-16">

@@ -6,6 +6,10 @@ const nextConfig = {
   compiler: {
     removeConsole: process.env.NODE_ENV === "production",
   },
+  // Optimize production builds
+  productionBrowserSourceMaps: false,
+  // Compress output
+  compress: true,
   // Optimize images
   images: {
     formats: ['image/avif', 'image/webp'],

@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { getLenisInstance } from "../lib/lenis";
@@ -22,44 +22,67 @@ function Navigation() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("");
 
-  // Optimized scroll handler using Lenis events
+  // Optimized scroll handler - deferred to reduce initial load
   useEffect(() => {
-    const lenis = getLenisInstance();
-    if (!lenis) return;
+    // Defer scroll tracking to reduce initial load lag
+    const initTimer = setTimeout(() => {
+      const lenis = getLenisInstance();
+      if (!lenis) {
+        // Fallback to native scroll
+        const handleNativeScroll = () => {
+          setIsScrolled(window.scrollY > 20);
+        };
+        window.addEventListener('scroll', handleNativeScroll, { passive: true });
+        handleNativeScroll();
+        return () => window.removeEventListener('scroll', handleNativeScroll);
+      }
 
-    let rafId: number;
-    let lastScrollY = 0;
-    
-    const handleScroll = (e: any) => {
-      const scrollY = e.scroll || window.scrollY;
+      let rafId: number;
+      let lastScrollY = 0;
+      let throttleTimer: NodeJS.Timeout | null = null;
       
-      // Throttle scroll updates
-      if (Math.abs(scrollY - lastScrollY) < 5) return;
-      lastScrollY = scrollY;
-      
-      rafId = requestAnimationFrame(() => {
-        setIsScrolled(scrollY > 20);
+      const handleScroll = (e: any) => {
+        const scrollY = e.scroll || window.scrollY;
         
-        // Update active section - only check when scroll changes significantly
-        const sections = navLinks.map(link => link.href.replace('#', ''));
-        const currentSection = sections.find(section => {
-          const element = document.getElementById(section);
-          if (!element) return false;
-          const rect = element.getBoundingClientRect();
-          return rect.top <= 100 && rect.bottom >= 100;
-        });
-        setActiveSection(currentSection ? `#${currentSection}` : '');
-      });
-    };
-    
-    lenis.on('scroll', handleScroll);
-    
-    // Initial check
-    handleScroll({ scroll: lenis.scroll || window.scrollY });
+        // Throttle scroll updates more aggressively
+        if (Math.abs(scrollY - lastScrollY) < 10) return;
+        lastScrollY = scrollY;
+        
+        if (throttleTimer) return;
+        throttleTimer = setTimeout(() => {
+          throttleTimer = null;
+          rafId = requestAnimationFrame(() => {
+            setIsScrolled(scrollY > 20);
+            
+            // Update active section - only check when scroll changes significantly
+            const sections = navLinks.map(link => link.href.replace('#', ''));
+            const currentSection = sections.find(section => {
+              const element = document.getElementById(section);
+              if (!element) return false;
+              const rect = element.getBoundingClientRect();
+              return rect.top <= 100 && rect.bottom >= 100;
+            });
+            setActiveSection(currentSection ? `#${currentSection}` : '');
+          });
+        }, 100); // Throttle to 100ms
+      };
+      
+      lenis.on('scroll', handleScroll);
+      
+      // Initial check - deferred
+      setTimeout(() => {
+        handleScroll({ scroll: lenis.scroll || window.scrollY });
+      }, 100);
+      
+      return () => {
+        lenis.off('scroll', handleScroll);
+        if (rafId) cancelAnimationFrame(rafId);
+        if (throttleTimer) clearTimeout(throttleTimer);
+      };
+    }, 800); // Defer scroll tracking by 800ms
     
     return () => {
-      lenis.off('scroll', handleScroll);
-      if (rafId) cancelAnimationFrame(rafId);
+      clearTimeout(initTimer);
     };
   }, []);
 
@@ -176,13 +199,10 @@ function Navigation() {
   }, [closeMobileMenu, isHomePage, router]);
 
   return (
-    <motion.nav
-      initial={{ y: -100, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+    <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled
-          ? "border-b border-white/10 bg-slate-950/80 backdrop-blur-xl shadow-lg shadow-sky-500/5"
+          ? "border-b border-white/10 bg-slate-950/95 shadow-lg shadow-sky-500/5"
           : "bg-transparent"
       }`}
     >
@@ -204,7 +224,7 @@ function Navigation() {
             Arvado
           </motion.span>
           <motion.div
-            className="absolute inset-0 bg-sky-500/10 rounded-lg blur-xl opacity-0 group-hover:opacity-100"
+            className="absolute inset-0 bg-sky-500/10 rounded-lg opacity-0 group-hover:opacity-100"
             transition={{ duration: 0.3 }}
           />
         </MagneticLink>
@@ -240,7 +260,7 @@ function Navigation() {
                   />
                 )}
                 <motion.div
-                  className="absolute -inset-2 bg-sky-500/10 rounded-lg opacity-0 group-hover:opacity-100 blur-sm"
+                  className="absolute -inset-2 bg-sky-500/10 rounded-lg opacity-0 group-hover:opacity-100"
                   transition={{ duration: 0.3 }}
                 />
               </MagneticLink>
@@ -260,19 +280,9 @@ function Navigation() {
             className="absolute inset-0 bg-gradient-to-r from-sky-400 to-cyan-400 opacity-0 group-hover:opacity-100"
             transition={{ duration: 0.3 }}
           />
-          <motion.span
-            className="relative z-10"
-            animate={{
-              textShadow: [
-                "0 0 0px rgba(255, 255, 255, 0)",
-                "0 0 10px rgba(255, 255, 255, 0.5)",
-                "0 0 0px rgba(255, 255, 255, 0)",
-              ],
-            }}
-            transition={{ duration: 2, repeat: Infinity }}
-          >
+          <span className="relative z-10">
             Book a call
-          </motion.span>
+          </span>
           <motion.div
             className="absolute inset-0 bg-white/20"
             initial={{ x: "-100%" }}
@@ -318,7 +328,7 @@ function Navigation() {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            className="border-t border-white/10 bg-slate-950/95 backdrop-blur-xl md:hidden overflow-hidden"
+            className="border-t border-white/10 bg-slate-950/98 md:hidden overflow-hidden"
           >
             <motion.div
               initial={{ y: -20 }}
@@ -371,7 +381,7 @@ function Navigation() {
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.nav>
+    </nav>
   );
 }
 

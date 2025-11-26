@@ -51,58 +51,66 @@ export function useLenis(enabled = true) {
   useEffect(() => {
     if (!enabled) return;
 
-    const lenis = new Lenis({
-      lerp: 0.08, // Optimized lerp for smoother performance
-      smoothWheel: true,
-      duration: 1.2, // Slightly longer for smoother feel
-      easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      wheelMultiplier: 1, // Standard wheel multiplier
-      touchMultiplier: 2, // Better touch responsiveness
-      infinite: false, // Disable infinite scroll for performance
-    });
+    // Defer Lenis initialization significantly to reduce initial load lag
+    const initTimer = setTimeout(() => {
+      const lenis = new Lenis({
+        lerp: 0.12, // Slightly higher lerp for better performance
+        smoothWheel: true,
+        duration: 1.0, // Reduced duration for snappier feel
+        easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        wheelMultiplier: 0.8, // Reduced for better performance
+        touchMultiplier: 1.5, // Reduced for better performance
+        infinite: false, // Disable infinite scroll for performance
+        syncTouch: false, // Disable touch sync for better performance
+      });
 
-    lenisInstance = lenis;
+      lenisInstance = lenis;
 
-    let frame: number;
-    const raf = (time: number) => {
-      lenis.raf(time);
+      let frame: number;
+      const raf = (time: number) => {
+        lenis.raf(time);
+        frame = requestAnimationFrame(raf);
+      };
       frame = requestAnimationFrame(raf);
-    };
-    frame = requestAnimationFrame(raf);
 
-    const handleAnchorClick = (event: MouseEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (!target) return;
-      const anchor = target.closest<HTMLAnchorElement>("a[href^='#']");
-      if (!anchor || anchor.hasAttribute("data-lenis-ignore")) return;
+      const handleAnchorClick = (event: MouseEvent) => {
+        const target = event.target as HTMLElement | null;
+        if (!target) return;
+        const anchor = target.closest<HTMLAnchorElement>("a[href^='#']");
+        if (!anchor || anchor.hasAttribute("data-lenis-ignore")) return;
 
-      const hash = anchor.getAttribute("href");
-      if (!hash || hash === "#" || hash.length < 2) return;
+        const hash = anchor.getAttribute("href");
+        if (!hash || hash === "#" || hash.length < 2) return;
 
-      const destination = document.getElementById(decodeURIComponent(hash.slice(1)));
-      if (!destination) return;
+        const destination = document.getElementById(decodeURIComponent(hash.slice(1)));
+        if (!destination) return;
 
-      event.preventDefault();
-      scrollToHash(lenis, hash, "smooth");
-    };
+        event.preventDefault();
+        scrollToHash(lenis, hash, "smooth");
+      };
 
-    const handleHashChange = () => {
-      scrollToHash(lenis, window.location.hash, "smooth");
-    };
+      const handleHashChange = () => {
+        scrollToHash(lenis, window.location.hash, "smooth");
+      };
 
-    document.addEventListener("click", handleAnchorClick);
-    window.addEventListener("hashchange", handleHashChange);
+      document.addEventListener("click", handleAnchorClick);
+      window.addEventListener("hashchange", handleHashChange);
 
-    if (window.location.hash) {
-      requestAnimationFrame(() => scrollToHash(lenis, window.location.hash, "instant"));
-    }
+      if (window.location.hash) {
+        requestAnimationFrame(() => scrollToHash(lenis, window.location.hash, "instant"));
+      }
+
+      return () => {
+        cancelAnimationFrame(frame);
+        document.removeEventListener("click", handleAnchorClick);
+        window.removeEventListener("hashchange", handleHashChange);
+        lenis.destroy();
+        lenisInstance = null;
+      };
+    }, 500); // 500ms delay to allow initial render to complete
 
     return () => {
-      cancelAnimationFrame(frame);
-      document.removeEventListener("click", handleAnchorClick);
-      window.removeEventListener("hashchange", handleHashChange);
-      lenis.destroy();
-      lenisInstance = null;
+      clearTimeout(initTimer);
     };
   }, [enabled]);
 }
